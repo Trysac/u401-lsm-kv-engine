@@ -1,30 +1,8 @@
 # Architecture
 
-## Purpose
-
-`github.com/Trysac/u401-lsm-kv-engine` is a small, dependency-free Go library: Pure Go embedded log-structured merge-tree key-value engine with write-ahead log, memtable, SSTables, Bloom filters, and crash recovery.
-
-## Shape
-
-```text
-caller code --> package lsmkvengine (repository root)
-                    |
-                    +-- pure functions, no I/O, no global mutable state
-                    +-- internal/ (optional private helpers)
-```
-
-- **Public API**: every exported identifier of the root package. Unexported identifiers and
-  `internal/` packages may change without a major version.
-- **Errors**: invalid input returns an error; exported sentinel errors (such as `ErrBlank`) let
-  callers branch with `errors.Is`. The library never panics on input, prints or exits.
-- **Side effects**: none. If a feature needs I/O, accept an interface (`io.Reader` or a small
-  custom one) instead of opening resources, and record the choice in an ADR.
-
-## Quality contract
-
-`scripts/check` is the single definition of the gates; `fabrica.json` tells the factory and CI
-how to run it. See [TESTING.md](TESTING.md).
-
-## Decisions
-
-Architecture decisions are recorded in [decisions/](decisions/) as numbered ADRs.
+## Components
+- **MemTable**: Skiplist implementation supporting concurrent reads and single-writer mutations with tombstones for deletions.
+- **WAL**: Append-only log file with CRC32C checksum headers, tolerating truncated trailing writes during crash recovery.
+- **SSTable**: Immutable data files structured with chunked data blocks, restart markers, index blocks, and embedded Bloom filters.
+- **Manifest**: Tracks active SSTable generations and level distributions.
+- **Compaction**: Leveled merge sort combining L0 tables into L1 while shedding shadowed keys.
