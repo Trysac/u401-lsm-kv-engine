@@ -9,4 +9,5 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Add pure-Go LSM key-value engine with WAL, SSTables, Bloom filters, leveled compaction, and metrics exporter.
 - Initial project structure from the factory utility template.

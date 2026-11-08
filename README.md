@@ -1,55 +1,45 @@
 # lsm-kv-engine
 
-[![Go Reference](https://pkg.go.dev/badge/github.com/Trysac/u401-lsm-kv-engine.svg)](https://pkg.go.dev/github.com/Trysac/u401-lsm-kv-engine)
-[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![CI](https://github.com/Trysac/u401-lsm-kv-engine/actions/workflows/ci.yml/badge.svg)](https://github.com/Trysac/u401-lsm-kv-engine/actions/workflows/ci.yml)
+Pure Go embedded Log-Structured Merge-tree (LSM) key-value engine with write-ahead log (WAL), memtable, SSTables, Bloom filters, and crash recovery. Applications requiring durable, embedded key-value storage often rely on complex Cgo bindings or monolithic engines that complicate cross-compilation and fail to provide predictable crash recovery under sudden power cuts. This library provides a clean, zero-dependency, crash-resilient LSM-tree storage engine with deterministic snapshot isolation and verifiable durability.
 
-Pure Go embedded log-structured merge-tree key-value engine with write-ahead log, memtable, SSTables, Bloom filters, and crash recovery.
+## Installation
 
-## Problem
-
-Describe in two or three sentences the concrete problem this utility solves, who hits it, and what
-they do today without it. Replace this paragraph when the first real feature lands.
-
-## Install
-
-```sh
-go get github.com/Trysac/u401-lsm-kv-engine
-```
-
-Requires Go 1.23 or newer. No dependencies outside the standard library.
+`go get github.com/Trysac/u401-lsm-kv-engine`
 
 ## Usage
 
 ```go
 package main
-
-import (
-	"errors"
-	"fmt"
-
-	"github.com/Trysac/u401-lsm-kv-engine"
-)
-
+import "github.com/Trysac/u401-lsm-kv-engine"
 func main() {
-	// Normalize trims surrounding whitespace and lower-cases the text.
-	out, _ := lsmkvengine.Normalize("  Hello World ")
-	fmt.Println(out) // -> "hello world"
-
-	// Blank input is rejected explicitly instead of returning an empty string.
-	if _, err := lsmkvengine.Normalize("   "); errors.Is(err, lsmkvengine.ErrBlank) {
-		fmt.Println("rejected:", err)
-	}
+	db, _ := lsmkvengine.Open(".data", lsmkvengine.Options{})
+	defer db.Close()
+	_ = db.Put([]byte("user:101"), []byte("alice"))
+	val, _ := db.Get([]byte("user:101"))
+	fmt.Println(string(val))
 }
 ```
 
-## Documentation
+## Public API
 
-- [Architecture](docs/ARCHITECTURE.md) and [decisions](docs/decisions/)
-- [Testing](docs/TESTING.md) and [security](docs/SECURITY.md)
-- [Project record](docs/PROJECT.md) and [stack](docs/STACK.md)
-- [Changelog](CHANGELOG.md) and [contributing guide](CONTRIBUTING.md)
+- `Open(dir string, opts Options) (*DB, error)`: Initializes the database at the provided path.
+- `Put(key, value []byte) error`: Writes a key-value pair.
+- `Get(key []byte) ([]byte, error)`: Retrieves a value. Returns `*LSMError` with code 'not_found' if absent.
+- `Delete(key []byte) error`: Deletes a key via tombstone.
+- `Write(b *Batch) error`: Atomically commits a batch.
+- `NewIterator(lo, hi []byte) (Iterator, error)`: Scans a key range.
+- `Close() error`: Flushes memtables and closes files.
 
-## License
+## Limits and Options
 
-[MIT](LICENSE) (c) 2026 Miguel Gomez
+- **Limits**: Keys capped at 64 KiB, Values at 4 MiB. Exceeding these returns `key_too_large` or `val_too_large` errors.
+- **Memtable**: Default 4 MiB cap before flushing to L0.
+- **Consistency**: Configurable `SyncPolicy` (SyncAlways, SyncEveryN, SyncNever).
+
+## Why not existing alternatives?
+
+Alternatives often rely on complex Cgo bindings or monolithic architectures. This engine provides a pure-Go, isolated implementation that avoids runtime panics on corrupted logs and handles concurrent background compaction without snapshot inconsistencies.
+
+## Security
+
+See [docs/SECURITY.md](docs/SECURITY.md) for the threat model and limits.

@@ -1,5 +1,7 @@
-// Package lsmkvengine is a small, dependency-free Go library: Pure Go embedded log-structured merge-tree key-value engine with write-ahead log, memtable, SSTables, Bloom filters, and crash recovery.
+// Package lsmkvengine provides a pure-Go, crash-resilient Log-Structured Merge-tree
+// (LSM) embedded key-value storage engine.
 //
-// The public API is every exported identifier of this root package. Functions are pure: they do
-// no I/O, keep no global mutable state and report invalid input through returned errors.
+// It features write-ahead logging (WAL) protected by CRC32C checksums, skiplist memtable,
+// immutable SSTables with Bloom filters and restart blocks, manifest versioning,
+// leveled compaction, and snapshot-isolated range iterators.
 package lsmkvengine
